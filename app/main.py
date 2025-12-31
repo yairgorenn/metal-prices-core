@@ -43,7 +43,7 @@ def ingest_price(
         row.price_ils_per_kg = price_ils_per_kg
         row.price_date = price_date
     else:
-        # יצירת שורה חדשה (פעם ראשונה בלבד)
+        #new row first time
         row = MetalPrice(
             metal_code=metal,
             price_eur_per_ton=price_eur_per_ton,
