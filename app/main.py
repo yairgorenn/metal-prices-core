@@ -17,7 +17,6 @@ def get_db():
     finally:
         db.close()
 
-
 @app.post("/ingest/metal-price")
 def ingest_price(
     metal: str,
@@ -26,17 +25,34 @@ def ingest_price(
     price_date: date,
     db: Session = Depends(get_db),
     _: None = Depends(require_ingest_token)
-):
+    ):
+
     price_ils_per_kg = (price_eur_per_ton * eur_to_ils) / 1000
 
-    row = MetalPrice(
-        metal_code=metal,
-        price_eur_per_ton=price_eur_per_ton,
-        eur_to_ils=eur_to_ils,
-        price_ils_per_kg=price_ils_per_kg,
-        price_date=price_date
+    # חיפוש שורה קיימת למתכת
+    row = (
+        db.query(MetalPrice)
+        .filter(MetalPrice.metal_code == metal)
+        .one_or_none()
     )
-    db.add(row)
+
+    if row:
+        # עדכון שורה קיימת
+        row.price_eur_per_ton = price_eur_per_ton
+        row.eur_to_ils = eur_to_ils
+        row.price_ils_per_kg = price_ils_per_kg
+        row.price_date = price_date
+    else:
+        # יצירת שורה חדשה (פעם ראשונה בלבד)
+        row = MetalPrice(
+            metal_code=metal,
+            price_eur_per_ton=price_eur_per_ton,
+            eur_to_ils=eur_to_ils,
+            price_ils_per_kg=price_ils_per_kg,
+            price_date=price_date
+        )
+        db.add(row)
+
     db.commit()
 
     return {"status": "ok"}
