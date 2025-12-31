@@ -25,11 +25,9 @@ def ingest_price(
     price_date: date,
     db: Session = Depends(get_db),
     _: None = Depends(require_ingest_token)
-    ):
+):
+    price_ils_per_kg = round((price_eur_per_ton * eur_to_ils) / 1000, 6)
 
-    price_ils_per_kg = (price_eur_per_ton * eur_to_ils) / 1000
-
-    # חיפוש שורה קיימת למתכת
     row = (
         db.query(MetalPrice)
         .filter(MetalPrice.metal_code == metal)
@@ -37,13 +35,13 @@ def ingest_price(
     )
 
     if row:
-        # עדכון שורה קיימת
+        # UPDATE
         row.price_eur_per_ton = price_eur_per_ton
         row.eur_to_ils = eur_to_ils
         row.price_ils_per_kg = price_ils_per_kg
         row.price_date = price_date
     else:
-        #new row first time
+        # INSERT
         row = MetalPrice(
             metal_code=metal,
             price_eur_per_ton=price_eur_per_ton,
@@ -54,8 +52,7 @@ def ingest_price(
         db.add(row)
 
     db.commit()
-
-    return {"status": "ok"}
+    return {"status": "ok", "metal": metal}
 
 
 @app.get("/prices/latest")
